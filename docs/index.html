@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Free open-source OCR pipeline for invoice and receipt extraction. Extract vendor, date, total, invoice number, and line items. MIT licensed.">
   <title>Hermes Invoice Extractor — OCR Pipeline</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -13,11 +14,10 @@
     header p { font-size: 1.2rem; color: #888; max-width: 600px; margin: 0 auto; }
     section { padding: 60px 0; }
     h2 { font-size: 1.8rem; margin-bottom: 20px; color: #fff; }
-    h3 { font-size: 1.2rem; margin-bottom: 12px; color: #a855f7; }
     .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-top: 30px; }
     .feature-card { background: #141414; border: 1px solid #222; border-radius: 12px; padding: 28px; transition: border-color 0.2s; }
     .feature-card:hover { border-color: #6366f1; }
-    .feature-card h3 { margin-top: 0; }
+    .feature-card h3 { margin-top: 0; color: #a855f7; }
     .feature-card p { color: #888; font-size: 0.95rem; }
     .code-block { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 20px; overflow-x: auto; font-family: 'Fira Code', monospace; font-size: 0.85rem; color: #ccc; margin: 16px 0; }
     .code-block .keyword { color: #c792ea; }
@@ -27,7 +27,7 @@
     .cta { text-align: center; padding: 80px 24px; background: linear-gradient(180deg, #141414 0%, #0a0a0a 100%); }
     .cta h2 { font-size: 2rem; margin-bottom: 16px; }
     .cta p { color: #888; margin-bottom: 30px; font-size: 1.1rem; }
-    .btn { display: inline-block; padding: 14px 32px; background: #6366f1; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1rem; transition: background 0.2s; }
+    .btn { display: inline-block; padding: 14px 32px; background: #6366f1; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1rem; transition: background 0.2s; margin: 4px; }
     .btn:hover { background: #4f46e5; }
     .btn-secondary { background: transparent; border: 1px solid #6366f1; color: #6366f1; }
     .btn-secondary:hover { background: #6366f1; color: #fff; }
@@ -53,12 +53,12 @@
       <p style="color:#666; margin-top:16px;">Free. Open source. MIT licensed.</p>
       <div style="margin-top:24px;">
         <a href="https://github.com/uspourmirza-boop/hermes-invoice-extract" class="btn">View on GitHub</a>
-        <a href="#demo" class="btn btn-secondary" style="margin-left:12px;">How It Works</a>
+        <a href="#how-it-works" class="btn btn-secondary" style="margin-left:12px;">How It Works</a>
       </div>
     </div>
   </header>
 
-  <section id="demo">
+  <section id="how-it-works">
     <div class="container">
       <h2>How It Works</h2>
       <div class="code-block">
@@ -73,7 +73,6 @@ result = extract_invoice(<span class="string">"invoice.jpg"</span>)
 <span class="keyword">from</span> src.batch <span class="keyword">import</span> process_folder
 
 process_folder(<span class="string">"./invoices/"</span>, <span class="string">"output.json"</span>)
-<span class="comment"># → processes all images, saves structured JSON</span>
       </div>
     </div>
   </section>
@@ -163,14 +162,6 @@ python src/batch.py ./invoices/ output.json
         <span class="badge">GitHub</span>
       </div>
       <p style="color:#666; margin-top:20px; font-size:0.9rem;">Zero cost to run. No API keys. No subscriptions. No vendor lock-in.</p>
-    </div>
-  </section>
-
-  <section>
-    <div class="container">
-      <h2>License</h2>
-      <p style="color:#666;">MIT License — Use commercially, modify, redistribute. No attribution required.</p>
-      <p style="color:#666; font-size:0.85rem; margin-top:8px;">See <a href="https://github.com/uspourmirza-boop/hermes-invoice-extract/blob/main/LICENSE" style="color:#6366f1;">LICENSE</a> for full terms.</p>
     </div>
   </section>
 
