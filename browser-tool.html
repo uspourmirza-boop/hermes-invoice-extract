@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice OCR — Client-Side Extraction</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0f172a; color: #e2e8f0; min-height: 100vh;
+    padding: 1.5rem; line-height: 1.6;
+  }
+  .container { max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .subtitle { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .subtitle a { color: #60a5fa; text-decoration: none; }
+  .subtitle a:hover { text-decoration: underline; }
+  
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed #475569; border-radius: 12px; padding: 2.5rem 1rem;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+    background: #1e293b; margin-bottom: 1.5rem;
+  }
+  .drop-zone:hover, .drop-zone.drag {
+    border-color: #60a5fa; background: #1e293b80;
+  }
+  .drop-zone svg { width: 40px; height: 40px; margin-bottom: 0.75rem; color: #64748b; }
+  .drop-zone p { color: #94a3b8; font-size: 0.9rem; }
+  .drop-zone .hint { font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; }
+  #file-input { display: none; }
+  
+  /* Preview */
+  .preview-section { margin-bottom: 1.5rem; }
+  .preview-section img {
+    max-width: 100%; max-height: 300px; border-radius: 8px;
+    border: 1px solid #334155;
+  }
+  
+  /* Progress */
+  .progress-wrap { margin-bottom: 1.5rem; }
+  .progress-bar {
+    height: 6px; background: #334155; border-radius: 3px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: #3b82f6; width: 0%; transition: width 0.3s;
+    border-radius: 3px;
+  }
+  .progress-text { font-size: 0.75rem; color: #94a3b8; margin-top: 0.35rem; }
+  
+  /* Results */
+  .results { display: none; }
+  .results.show { display: block; }
+  
+  .card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+    padding: 1rem 1.25rem; margin-bottom: 1rem;
+  }
+  .card h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; 
+             color: #64748b; margin-bottom: 0.75rem; font-weight: 600; }
+  
+  .field { display: flex; justify-content: space-between; padding: 0.4rem 0;
+           border-bottom: 1px solid #334155; }
+  .field:last-child { border-bottom: none; }
+  .field-label { color: #94a3b8; font-size: 0.85rem; }
+  .field-value { font-weight: 500; font-size: 0.85rem; text-align: right;
+                 max-width: 60%; word-break: break-word; }
+  .field-value.missing { color: #64748b; font-style: italic; font-weight: 400; }
+  
+  /* Line items table */
+  .items-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .items-table th { text-align: left; padding: 0.5rem; color: #64748b; 
+                    font-weight: 500; border-bottom: 1px solid #334155; }
+  .items-table td { padding: 0.5rem; border-bottom: 1px solid #1e293b; }
+  .items-table .amt { text-align: right; font-variant-numeric: tabular-nums; }
+  .items-empty { color: #64748b; font-style: italic; font-size: 0.8rem; padding: 0.5rem 0; }
+  
+  /* JSON output */
+  .json-output {
+    background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+    padding: 1rem; font-family: 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 0.75rem; white-space: pre-wrap; word-break: break-word;
+    max-height: 400px; overflow-y: auto; color: #e2e8f0;
+  }
+  
+  /* Actions */
+  .actions { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+  .btn {
+    padding: 0.5rem 1rem; border: 1px solid #475569; border-radius: 6px;
+    background: #1e293b; color: #e2e8f0; font-size: 0.8rem; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: #334155; border-color: #64748b; }
+  .btn.primary { background: #2563eb; border-color: #2563eb; }
+  .btn.primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+  
+  /* Loading spinner */
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid #3b82f6; border-top-color: transparent;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 0.4rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  /* Privacy badge */
+  .privacy-badge {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    background: #064e3b; color: #6ee7b7; font-size: 0.7rem;
+    padding: 0.25rem 0.6rem; border-radius: 10px; margin-bottom: 1rem;
+  }
+  
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1e293b;
+    border: 1px solid #334155; padding: 0.75rem 1rem; border-radius: 8px;
+    font-size: 0.8rem; opacity: 0; transform: translateY(10px);
+    transition: all 0.3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Invoice OCR</h1>
+  <p class="subtitle">Client-side extraction with <a href="https://github.com/naptha/tesseract.js" target="_blank">Tesseract.js</a> WASM — no server, no upload, no install.</p>
+  
+  <div class="privacy-badge">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    100% client-side — your images never leave this device
+  </div>
+
+  <!-- Drop zone -->
+  <div class="drop-zone" id="drop-zone">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <p><strong>Drop invoice image here</strong> or click to browse</p>
+    <p class="hint">Supports JPG, PNG, BMP, WEBP • Max 20MB</p>
+    <input type="file" id="file-input" accept="image/*">
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-section" id="preview-section" style="display:none;">
+    <img id="preview-img" alt="Invoice preview">
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progress-wrap" style="display:none;">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-text" id="progress-text"></div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="card">
+      <h3>Extracted Fields</h3>
+      <div class="field">
+        <span class="field-label">Vendor</span>
+        <span class="field-value missing" id="r-vendor">—</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Date</span>
+        <span class="field-value missing" id="r-date">—</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Invoice #</span>
+        <span class="field-value missing" id="r-invoice">—</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Total</span>
+        <span class="field-value missing" id="r-total">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Line Items</h3>
+      <div id="r-items"></div>
+    </div>
+
+    <div class="card">
+      <h3>JSON Output</h3>
+      <div class="json-output" id="r-json"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="btn-copy">Copy JSON</button>
+      <button class="btn" id="btn-download">Download JSON</button>
+      <button class="btn" id="btn-reset">Process Another</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+(() => {
+  'use strict';
+  
+  const $ = (id) => document.getElementById(id);
+  const dropZone = $('drop-zone');
+  const fileInput = $('file-input');
+  const previewSection = $('preview-section');
+  const previewImg = $('preview-img');
+  const progressWrap = $('progress-wrap');
+  const progressFill = $('progress-fill');
+  const progressText = $('progress-text');
+  const results = $('results');
+  const toast = $('toast');
+  
+  let extractedData = null;
+
+  // --- UI helpers ---
+  function showToast(msg, duration = 2500) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), duration);
+  }
+
+  function showProgress(show) {
+    progressWrap.style.display = show ? 'block' : 'none';
+  }
+
+  function setProgress(pct, label) {
+    progressFill.style.width = pct + '%';
+    progressText.textContent = label;
+  }
+
+  // --- File handling ---
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+  });
+
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) {
+      showToast('Please drop an image file.');
+      return;
+    }
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewImg.src = e.target.result;
+      previewSection.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    // Run OCR
+    runOCR(file);
+  }
+
+  // --- OCR + Extraction ---
+  async function runOCR(imageSource) {
+    showProgress(true);
+    setProgress(5, 'Loading Tesseract.js engine…');
+    results.classList.remove('show');
+
+    let worker;
+    try {
+      worker = await Tesseract.createWorker('eng', 1, {
+        logger: (msg) => {
+          if (msg.status === 'loading tesseract core') {
+            setProgress(10, 'Loading WASM core…');
+          } else if (msg.status === 'loading lang traineddata') {
+            setProgress(20, 'Downloading language data (one-time, ~8MB)…');
+          } else if (msg.status === 'initializing api') {
+            setProgress(35, 'Initializing OCR engine…');
+          } else if (msg.status === 'recognizing text') {
+            setProgress(40 + Math.round(msg.progress * 50), 
+              `Recognizing text… ${Math.round(msg.progress * 100)}%`);
+          }
+        },
+        errorHandler: (err) => console.error('Tesseract error:', err)
+      });
+
+      setProgress(92, 'Parsing invoice data…');
+      const { data: { text } } = await worker.recognize(imageSource);
+      
+      setProgress(97, 'Extracting structured fields…');
+      extractedData = extractInvoiceData(text);
+      
+      setProgress(100, 'Done!');
+      displayResults(extractedData);
+      setTimeout(() => showProgress(false), 600);
+    } catch (err) {
+      console.error(err);
+      setProgress(0, 'Error: ' + (err.message || 'OCR failed'));
+      showToast('OCR failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      if (worker) await worker.terminate();
+    }
+  }
+
+  // --- Invoice parsing (adapted from extract.py) ---
+  function extractVendor(text) {
+    const lines = text.split('\n');
+    const skipWords = ['invoice', 'receipt', 'bill', 'tax', 'vat', 'rechnung',
+                       'factura', 'date', 'page', 'tel', 'fax', 'www', 'http'];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const lower = trimmed.toLowerCase();
+      if (skipWords.some(s => lower.startsWith(s))) continue;
+      if (trimmed.length < 3) continue;
+      if (/^[\d\-\.\:\/\s]+$/.test(trimmed)) continue;
+      return trimmed;
+    }
+    return null;
+  }
+
+  function extractDate(text) {
+    const patterns = [
+      /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/,
+      /(\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/,
+      /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2},?\s+\d{4})/i,
+      /(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{4})/i,
+      /(\d{1,2}\.\d{1,2}\.\d{4})/,
+    ];
+    for (const pat of patterns) {
+      const m = text.match(pat);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  function extractTotal(text) {
+    const amounts = [];
+    const regex1 = /[\$\€\£\¥]?\s*([\d,]+\.?\d*)/g;
+    const regex2 = /[\$\€\£\¥]?\s*([\d\.]+,\d{2})/g;
+    
+    let match;
+    while ((match = regex1.exec(text)) !== null) amounts.push(match[1]);
+    while ((match = regex2.exec(text)) !== null) amounts.push(match[1]);
+    
+    if (!amounts.length) return null;
+    
+    const normalized = [];
+    for (const amt of amounts) {
+      let val = amt;
+      if (val.includes(',') && val.includes('.')) {
+        if (val.indexOf(',') > val.indexOf('.')) {
+          val = val.replace(/\./g, '').replace(',', '.');
+        } else {
+          val = val.replace(/,/g, '');
+        }
+      } else if (val.includes(',')) {
+        const parts = val.split(',');
+        if (parts[parts.length - 1].length === 2) {
+          val = val.replace(',', '.');
+        } else {
+          val = val.replace(/,/g, '');
+        }
+      }
+      const num = parseFloat(val);
+      if (!isNaN(num)) normalized.push(num);
+    }
+    
+    if (!normalized.length) return null;
+    return Math.max(...normalized).toFixed(2);
+  }
+
+  function extractInvoiceNumber(text) {
+    const patterns = [
+      /(?:invoice|receipt|rechnung|factura|bill)\s*(?:#|no|num|nummer|n[úu]mero)?[\.:]?\s*([A-Z0-9\-\/]+)/i,
+      /(?:#|no)\s*[:\.]?\s*([A-Z]{0,3}[\-\/]?\d{3,})/,
+      /(?:ref|reference|referenz)[\.:]?\s*([A-Z0-9\-\/]+)/i,
+    ];
+    for (const pat of patterns) {
+      const m = text.match(pat);
+      if (m) {
+        const candidate = m[1].trim();
+        if (candidate.length >= 3) return candidate;
+      }
+    }
+    return null;
+  }
+
+  function extractLineItems(text) {
+    const items = [];
+    const lines = text.split('\n');
+    for (const line of lines) {
+      const match = line.trim().match(/^(.+?)\s+[\$\€\£\¥]?\s*([\d,]+\.\d{2})\s*$/);
+      if (match) {
+        const desc = match[1].trim();
+        const amt = match[2];
+        if (desc.length < 5) continue;
+        const lower = desc.toLowerCase();
+        if (['total', 'subtotal', 'tax', 'vat', 'sum'].some(w => lower.includes(w))) continue;
+        items.push({ description: desc, amount: amt });
+      }
+    }
+    return items;
+  }
+
+  function extractInvoiceData(rawText) {
+    return {
+      vendor: extractVendor(rawText),
+      date: extractDate(rawText),
+      total: extractTotal(rawText),
+      invoice_number: extractInvoiceNumber(rawText),
+      line_items: extractLineItems(rawText),
+      _raw_text: rawText,
+      _extracted_at: new Date().toISOString()
+    };
+  }
+
+  // --- Display results ---
+  function displayResults(data) {
+    $('r-vendor').textContent = data.vendor || 'Not found';
+    $('r-vendor').className = 'field-value' + (data.vendor ? '' : ' missing');
+    
+    $('r-date').textContent = data.date || 'Not found';
+    $('r-date').className = 'field-value' + (data.date ? '' : ' missing');
+    
+    $('r-invoice').textContent = data.invoice_number || 'Not found';
+    $('r-invoice').className = 'field-value' + (data.invoice_number ? '' : ' missing');
+    
+    $('r-total').textContent = data.total ? '$' + data.total : 'Not found';
+    $('r-total').className = 'field-value' + (data.total ? '' : ' missing');
+    
+    const itemsContainer = $('r-items');
+    if (data.line_items.length === 0) {
+      itemsContainer.innerHTML = '<div class="items-empty">No line items detected</div>';
+    } else {
+      let html = '<table class="items-table"><thead><tr><th>Description</th><th class="amt">Amount</th></tr></thead><tbody>';
+      for (const item of data.line_items) {
+        html += `<tr><td>${escapeHtml(item.description)}</td><td class="amt">$${item.amount}</td></tr>`;
+      }
+      html += '</tbody></table>';
+      itemsContainer.innerHTML = html;
+    }
+    
+    $('r-json').textContent = JSON.stringify(data, null, 2);
+    results.classList.add('show');
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // --- Action buttons ---
+  $('btn-copy').addEventListener('click', () => {
+    if (!extractedData) return;
+    const json = JSON.stringify(extractedData, null, 2);
+    navigator.clipboard.writeText(json).then(() => showToast('JSON copied to clipboard!'));
+  });
+
+  $('btn-download').addEventListener('click', () => {
+    if (!extractedData) return;
+    const json = JSON.stringify(extractedData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice_${extractedData.invoice_number || 'extracted'}_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('JSON downloaded!');
+  });
+
+  $('btn-reset').addEventListener('click', () => {
+    results.classList.remove('show');
+    previewSection.style.display = 'none';
+    fileInput.value = '';
+    extractedData = null;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+})();
+</script>
+</body>
+</html>
