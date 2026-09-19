@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hermes Invoice Extractor — OCR Pipeline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #e0e0e0; line-height: 1.6; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+    header { text-align: center; padding: 80px 24px 60px; border-bottom: 1px solid #222; }
+    header h1 { font-size: 2.8rem; font-weight: 700; margin-bottom: 12px; background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    header p { font-size: 1.2rem; color: #888; max-width: 600px; margin: 0 auto; }
+    section { padding: 60px 0; }
+    h2 { font-size: 1.8rem; margin-bottom: 20px; color: #fff; }
+    h3 { font-size: 1.2rem; margin-bottom: 12px; color: #a855f7; }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-top: 30px; }
+    .feature-card { background: #141414; border: 1px solid #222; border-radius: 12px; padding: 28px; transition: border-color 0.2s; }
+    .feature-card:hover { border-color: #6366f1; }
+    .feature-card h3 { margin-top: 0; }
+    .feature-card p { color: #888; font-size: 0.95rem; }
+    .code-block { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 20px; overflow-x: auto; font-family: 'Fira Code', monospace; font-size: 0.85rem; color: #ccc; margin: 16px 0; }
+    .code-block .keyword { color: #c792ea; }
+    .code-block .string { color: #c3e88d; }
+    .code-block .comment { color: #546e7a; }
+    .code-block .function { color: #82aaff; }
+    .cta { text-align: center; padding: 80px 24px; background: linear-gradient(180deg, #141414 0%, #0a0a0a 100%); }
+    .cta h2 { font-size: 2rem; margin-bottom: 16px; }
+    .cta p { color: #888; margin-bottom: 30px; font-size: 1.1rem; }
+    .btn { display: inline-block; padding: 14px 32px; background: #6366f1; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1rem; transition: background 0.2s; }
+    .btn:hover { background: #4f46e5; }
+    .btn-secondary { background: transparent; border: 1px solid #6366f1; color: #6366f1; }
+    .btn-secondary:hover { background: #6366f1; color: #fff; }
+    .stat-row { display: flex; gap: 40px; justify-content: center; margin: 40px 0; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat .number { font-size: 2.4rem; font-weight: 700; color: #a855f7; }
+    .stat .label { font-size: 0.9rem; color: #666; margin-top: 4px; }
+    .pricing-table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+    .pricing-table th, .pricing-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid #222; }
+    .pricing-table th { color: #a855f7; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .pricing-table td { color: #ccc; }
+    footer { text-align: center; padding: 40px 24px; border-top: 1px solid #222; color: #555; font-size: 0.85rem; }
+    .badge { display: inline-block; padding: 4px 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; font-size: 0.8rem; color: #888; margin-right: 8px; }
+    .compare-section { background: #141414; border-radius: 12px; padding: 32px; margin: 24px 0; }
+    .compare-section h3 { margin-top: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Hermes Invoice Extractor</h1>
+      <p>Upload any invoice or receipt. Get back structured JSON data in seconds.</p>
+      <p style="color:#666; margin-top:16px;">Free. Open source. MIT licensed.</p>
+      <div style="margin-top:24px;">
+        <a href="https://github.com/uspourmirza-boop/hermes-invoice-extract" class="btn">View on GitHub</a>
+        <a href="#demo" class="btn btn-secondary" style="margin-left:12px;">How It Works</a>
+      </div>
+    </div>
+  </header>
+
+  <section id="demo">
+    <div class="container">
+      <h2>How It Works</h2>
+      <div class="code-block">
+<span class="comment"># Extract structured data from an invoice image</span>
+<span class="keyword">from</span> src.extract <span class="keyword">import</span> extract_invoice
+
+result = extract_invoice(<span class="string">"invoice.jpg"</span>)
+<span class="comment"># → {"vendor": "Acme Corp", "total": "150.00", "date": "2026-01-15", ...}</span>
+      </div>
+      <div class="code-block">
+<span class="comment"># Batch process a folder of invoices</span>
+<span class="keyword">from</span> src.batch <span class="keyword">import</span> process_folder
+
+process_folder(<span class="string">"./invoices/"</span>, <span class="string">"output.json"</span>)
+<span class="comment"># → processes all images, saves structured JSON</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>What Gets Extracted</h2>
+      <div class="features">
+        <div class="feature-card">
+          <h3>🏢 Vendor</h3>
+          <p>Automatically identifies the company or merchant name from invoice headers.</p>
+        </div>
+        <div class="feature-card">
+          <h3>📅 Dates</h3>
+          <p>Parses invoice date, due date, and payment deadlines across multiple formats.</p>
+        </div>
+        <div class="feature-card">
+          <h3>💰 Totals</h3>
+          <p>Extracts total, subtotal, tax amounts with multi-currency support ($, €, £, ¥).</p>
+        </div>
+        <div class="feature-card">
+          <h3>#️⃣ Invoice #</h3>
+          <p>Identifies invoice, receipt, and reference numbers from standard patterns.</p>
+        </div>
+        <div class="feature-card">
+          <h3>📋 Line Items</h3>
+          <p>Parses descriptions, quantities, unit prices, and line-level totals.</p>
+        </div>
+        <div class="feature-card">
+          <h3>🔧 JSON Output</h3>
+          <p>Clean, structured JSON ready for accounting software, spreadsheets, or databases.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>Cost Comparison</h2>
+      <div class="compare-section">
+        <h3>Manual vs. Hermes</h3>
+        <table class="pricing-table">
+          <thead>
+            <tr><th>Metric</th><th>Manual Entry</th><th>Hermes Extractor</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Time per invoice</td><td>5–15 minutes</td><td>2–5 seconds</td></tr>
+            <tr><td>Cost per invoice</td><td>$5–20</td><td>$0</td></tr>
+            <tr><td>Accuracy</td><td>~99% (human)</td><td>~85–95% (Tesseract)</td></tr>
+            <tr><td>Setup time</td><td>None</td><td>2 minutes</td></tr>
+            <tr><td>Scalability</td><td>Linear (more invoices = more hours)</td><td>Instant (parallel processing)</td></tr>
+            <tr><td>Maintenance</td><td>Employee payroll</td><td>Free, open source</td></tr>
+          </tbody>
+        </table>
+        <p style="color:#666; font-size:0.9rem; margin-top:16px;">For a business processing 100 invoices/month, Hermes saves ~$500–2,000/month in manual labor costs.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>Quick Start</h2>
+      <div class="code-block">
+<span class="comment"># Clone and run</span>
+git <span class="function">clone</span> https://github.com/uspourmirza-boop/hermes-invoice-extract.git
+<span class="keyword">cd</span> hermes-invoice-extract
+pip install -r requirements.txt
+python app.py <span class="comment"># Opens interactive web demo at localhost:7860</span>
+      </div>
+      <div class="code-block">
+<span class="comment"># CLI extraction</span>
+python src/extract.py path/to/invoice.jpg
+python src/batch.py ./invoices/ output.json
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>Technology Stack</h2>
+      <div style="margin-top:16px;">
+        <span class="badge">Tesseract OCR</span>
+        <span class="badge">Python</span>
+        <span class="badge">Pillow</span>
+        <span class="badge">Gradio</span>
+        <span class="badge">MIT License</span>
+        <span class="badge">GitHub</span>
+      </div>
+      <p style="color:#666; margin-top:20px; font-size:0.9rem;">Zero cost to run. No API keys. No subscriptions. No vendor lock-in.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>License</h2>
+      <p style="color:#666;">MIT License — Use commercially, modify, redistribute. No attribution required.</p>
+      <p style="color:#666; font-size:0.85rem; margin-top:8px;">See <a href="https://github.com/uspourmirza-boop/hermes-invoice-extract/blob/main/LICENSE" style="color:#6366f1;">LICENSE</a> for full terms.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>Hermes Invoice Extractor v1.0 — Built and operated by Hermes Agent</p>
+      <p style="margin-top:8px;">Part of the <a href="https://github.com/uspourmirza-boop/hermes-engine" style="color:#6366f1;">Hermes Autonomous Economic Engine</a></p>
+    </div>
+  </footer>
+</body>
+</html>

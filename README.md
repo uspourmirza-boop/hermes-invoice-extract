@@ -1,98 +1,91 @@
-# Hermes Invoice & Receipt Data Extraction Pack
+# Hermes Invoice Extractor
 
-> **Tested, documented, ready-to-use OCR automation for accounts payable, bookkeeping, and expense tracking.**
+> **Upload an invoice or receipt image. Get back structured data instantly.**
 
-Stop manually typing data from invoices and receipts. This pack gives you a production-tested Python pipeline that extracts vendor, date, total, line items, and invoice numbers from any scanned document — in under 2 seconds per page.
+## Live Demo
 
-## What You Get
+**Interactive Web App:** [Hugging Face Spaces](https://huggingface.co/spaces/uspourmirza-boop/hermes-invoice-extract)
 
-| File | Purpose |
-|------|---------|
-| `src/extract.py` | Main extraction pipeline — drop in an image, get structured JSON |
-| `src/preprocess.py` | Image preprocessing (grayscale, threshold, deskew) |
-| `src/postprocess.py` | Regex-based field extraction from raw OCR text |
-| `src/batch.py` | Batch-process entire folders of invoices |
-| `SKILL.md` | Claude Code skill — invoke with `claude -p "/invoice-extract"` |
-| `docs/setup.md` | 5-minute setup guide |
-| `docs/accuracy.md` | Benchmarks on 50 real invoices (94.7% field accuracy) |
-| `docs/troubleshooting.md` | Common failures and fixes |
-| `tests/test_extract.py` | Unit tests — verify your setup works |
+Try it right now — upload any invoice or receipt image and see structured data extracted in seconds.
+
+## What It Does
+
+This is a **production-grade OCR pipeline** that extracts structured data from invoice and receipt images:
+
+- Vendor / Company name
+- Invoice date & due date
+- Total amount, subtotal, tax
+- Invoice / Receipt number
+- Line items (description, quantity, unit price, amount)
+- Multi-currency support ($, €, £, ¥)
+- Multi-date-format parsing
+
+Output as clean JSON — ready to pipe into your accounting software, spreadsheet, or database.
 
 ## Quick Start
 
 ```bash
-# 1. Install Tesseract OCR (free, open source)
-# macOS: brew install tesseract
-# Ubuntu: sudo apt install tesseract-ocr
-# Windows: https://github.com/UB-Mannheim/tesseract/wiki
+# Clone
+git clone https://github.com/uspourmirza-boop/hermes-invoice-extract.git
+cd hermes-invoice-extract
 
-# 2. Install Python dependencies
-pip install pytesseract Pillow
+# Install dependencies
+pip install -r requirements.txt
 
-# 3. Extract data from an invoice
-python src/extract.py invoice.png
-
-# Output:
-# {
-#   "vendor": "Acme Office Supplies",
-#   "date": "2026-03-15",
-#   "total": "847.23",
-#   "invoice_number": "INV-2026-0342",
-#   "line_items": [
-#     {"description": "Printer Paper (10 reams)", "amount": "124.50"},
-#     {"description": "Toner Cartridge", "amount": "89.99"}
-#   ]
-# }
+# Run the web demo locally
+python app.py
+# → Opens at http://localhost:7860
 ```
 
-## Batch Processing
+## CLI Usage
 
 ```bash
-# Process an entire folder of invoices
-python src/batch.py ./invoices/ --output results.json
+# Extract from a single image
+python src/extract.py path/to/invoice.jpg
 
-# Process with specific language
-python src/extract.py invoice_fr.png --lang fra
+# Batch process a folder
+python src/batch.py path/to/invoices/ output.json
 ```
 
-## Accuracy
+## API Usage
 
-Tested on 50 real invoices and receipts from 12 vendors:
+```python
+from src.extract import extract_invoice
+import json
 
-| Field | Accuracy | Notes |
-|-------|----------|-------|
-| Vendor name | 96% | Fails on logos-only headers |
-| Date | 98% | Multiple format support |
-| Total | 94% | Fails on handwritten totals |
-| Invoice number | 92% | Fails on non-standard formats |
-| Line items | 93% | Fails on complex tables |
-
-**Overall field accuracy: 94.7%**
-
-See `docs/accuracy.md` for full benchmark methodology and per-vendor breakdown.
+result = extract_invoice("invoice.jpg")
+print(json.dumps(result, indent=2))
+```
 
 ## Why This Exists
 
-Manual invoice data entry costs **$5-20 per invoice** in bookkeeper time (2-5 minutes at $20-50/hr fully loaded).
+Manual invoice data entry costs **$5-20 per invoice** and takes 5-15 minutes. This tool does it in **seconds** for **free**.
 
-This pipeline processes an invoice in **under 2 seconds** at **$0.001 cost** (Tesseract is free, your compute is free).
+Built for accountants, bookkeepers, small business owners, and anyone drowning in paper receipts.
 
-At 200 invoices/month: **$1,000-4,000/month saved** vs. **$0.20 cost**.
+## How It Works
 
-## Requirements
+```
+Image → Tesseract OCR → Image Preprocessing → Regex Parsing → Structured JSON
+```
 
-- Python 3.8+
-- Tesseract OCR 5.x
-- 50MB disk space
-- Works on Linux, macOS, Windows
-- No API keys, no cloud, no subscription
+- **Tesseract OCR**: Industry-standard open-source OCR engine
+- **Image Preprocessing**: Contrast enhancement, sharpening, denoising, 2x upscale
+- **Regex Parsing**: Multi-pattern extraction with fallbacks for common invoice formats
+
+## Performance
+
+- **Speed**: ~2-5 seconds per image (depends on size and quality)
+- **Accuracy**: ~85-95% on clear printed text; lower on handwritten or very low-quality images
+- **Languages**: Optimized for English; Tesseract supports 100+ languages with language packs
+- **Image types**: JPG, PNG, BMP, TIFF
 
 ## License
 
-MIT — use it commercially, modify it, sell it as part of your service. No attribution required.
+MIT — use commercially, modify, redistribute. No attribution required.
 
-## Support
+## Part of the Hermes Economic Engine
 
-- `docs/troubleshooting.md` covers 95% of issues
-- Open a GitHub issue for bugs
-- Custom integrations: see `docs/integrations.md`
+This is **Stage 0** of an autonomous economic engine — free digital products that generate distribution and prove demand.
+
+[Learn more about the engine](https://github.com/uspourmirza-boop/hermes-engine)
